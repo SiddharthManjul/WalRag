@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+*.log
+data/
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+coverage/
+.nyc_output/
+bun.lock
+package-lock.json
+
+HACKATHON_GUIDE.md
+QUICKSTART.md
