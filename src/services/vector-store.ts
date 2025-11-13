@@ -2,13 +2,24 @@ import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Document } from '@langchain/core/documents';
 import { config } from '../config/index.js';
+import { suiVectorRegistry } from './sui-vector-registry.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+/**
+ * Hybrid Vector Store Service
+ *
+ * Three-tier architecture:
+ * - Tier 1 (Hot): Local memory cache for fast similarity search
+ * - Tier 2 (Warm): Sui registry for vector metadata/index
+ * - Tier 3 (Cold): Walrus for actual vector data storage
+ */
 export class VectorStoreService {
   private store: MemoryVectorStore | null = null;
   private embeddings: OpenAIEmbeddings;
   private storePath: string;
+  private cacheVersion: number = 0;
+  private useSuiRegistry: boolean = false;
 
   constructor() {
     this.embeddings = new OpenAIEmbeddings({
@@ -16,10 +27,12 @@ export class VectorStoreService {
       modelName: config.openai.embeddingModel,
     });
     this.storePath = config.vectorDb.path;
+    this.useSuiRegistry = suiVectorRegistry.isConfigured();
   }
 
   /**
    * Initialize or load existing vector store
+   * With Sui registry integration, checks cache validity and syncs if needed
    */
   async initialize(): Promise<void> {
     try {
@@ -29,13 +42,35 @@ export class VectorStoreService {
       if (storeExists) {
         console.log('Loading existing vector store...');
         await this.loadFromDisk();
+
+        // Check if cache is stale (only if Sui registry is configured)
+        if (this.useSuiRegistry) {
+          const isStale = await this.isCacheStale();
+          if (isStale) {
+            console.log('⚠️  Local cache is stale, syncing from Sui registry...');
+            await this.syncFromSuiRegistry();
+          }
+        }
+
         console.log('✓ Vector store loaded');
       } else {
         console.log('Creating new vector store...');
-        // Create empty memory vector store
-        this.store = new MemoryVectorStore(this.embeddings);
 
-        // Ensure directory exists and save empty store
+        // Try to sync from Sui registry first (if configured)
+        if (this.useSuiRegistry) {
+          try {
+            await this.syncFromSuiRegistry();
+            console.log('✓ Vector store synced from Sui registry');
+          } catch (error) {
+            console.log('⚠️  Could not sync from Sui, creating empty store');
+            this.store = new MemoryVectorStore(this.embeddings);
+          }
+        } else {
+          // Create empty memory vector store
+          this.store = new MemoryVectorStore(this.embeddings);
+        }
+
+        // Ensure directory exists and save
         await fs.mkdir(path.dirname(this.storePath), { recursive: true });
         await this.save();
         console.log('✓ New vector store created');
@@ -44,6 +79,69 @@ export class VectorStoreService {
       console.error('Failed to initialize vector store:', error);
       throw error;
     }
+  }
+
+  /**
+   * Check if local cache is stale compared to Sui registry
+   */
+  private async isCacheStale(): Promise<boolean> {
+    if (!this.useSuiRegistry) {
+      return false;
+    }
+
+    try {
+      const registryVersion = await suiVectorRegistry.getVersion();
+      return registryVersion > this.cacheVersion;
+    } catch (error) {
+      console.warn('Could not check registry version:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sync local cache from Sui registry + Walrus
+   * Downloads all vectors from Walrus based on Sui metadata
+   */
+  async syncFromSuiRegistry(): Promise<void> {
+    if (!this.useSuiRegistry) {
+      throw new Error('Sui registry not configured');
+    }
+
+    console.log('🔄 Syncing from Sui registry...');
+
+    // Get all documents from registry
+    const docs = await suiVectorRegistry.getAllDocuments();
+    console.log(`   Found ${docs.length} documents in registry`);
+
+    // Create new empty store
+    this.store = new MemoryVectorStore(this.embeddings);
+
+    // Download and add each document's vectors
+    for (const doc of docs) {
+      try {
+        // Download vectors from Walrus
+        const vectors = await suiVectorRegistry.downloadVectors(doc.vectorBlobId);
+
+        // Convert to Langchain documents
+        const documents = vectors.map(v => new Document({
+          pageContent: v.content,
+          metadata: v.metadata,
+        }));
+
+        await this.store.addDocuments(documents);
+        console.log(`   ✓ Synced: ${doc.filename} (${vectors.length} vectors)`);
+      } catch (error) {
+        console.warn(`   ⚠️  Failed to sync ${doc.filename}:`, error);
+      }
+    }
+
+    // Update cache version
+    this.cacheVersion = await suiVectorRegistry.getVersion();
+
+    // Save to disk
+    await this.save();
+
+    console.log(`✓ Sync complete (version: ${this.cacheVersion})`);
   }
 
   /**
@@ -93,7 +191,7 @@ export class VectorStoreService {
   }
 
   /**
-   * Save the vector store to disk
+   * Save the vector store to disk (with version tracking)
    */
   async save(): Promise<void> {
     if (!this.store) {
@@ -103,9 +201,12 @@ export class VectorStoreService {
     // Ensure directory exists
     await fs.mkdir(path.dirname(this.storePath), { recursive: true });
 
-    // Serialize the memory store to JSON
+    // Serialize the memory store to JSON with version
     const storageFile = path.join(this.storePath, 'memory-store.json');
     const data = {
+      version: this.cacheVersion,
+      lastUpdated: new Date().toISOString(),
+      useSuiRegistry: this.useSuiRegistry,
       memoryVectors: this.store.memoryVectors,
     };
 
@@ -113,7 +214,7 @@ export class VectorStoreService {
   }
 
   /**
-   * Load the vector store from disk
+   * Load the vector store from disk (with version tracking)
    */
   private async loadFromDisk(): Promise<void> {
     const storageFile = path.join(this.storePath, 'memory-store.json');
@@ -123,6 +224,9 @@ export class VectorStoreService {
     // Create new store and restore vectors
     this.store = new MemoryVectorStore(this.embeddings);
     this.store.memoryVectors = data.memoryVectors || [];
+
+    // Restore cache version
+    this.cacheVersion = data.version || 0;
   }
 
   /**
