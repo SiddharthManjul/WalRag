@@ -5,6 +5,7 @@ import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { walrusClient } from './walrus-client.js';
 import { vectorStoreService } from './vector-store.js';
+import { suiVectorRegistry } from './sui-vector-registry.js';
 import { config } from '../config/index.js';
 import { RAGQuery, RAGResult, StoredDocument } from '../types/index.js';
 
@@ -169,10 +170,35 @@ export class RAGService {
         })
       );
 
-      // Step 4: Add to vector store
+      // Step 4: Add to vector store (this generates embeddings)
       console.log('   Adding to vector store...');
       await vectorStoreService.addDocuments(documents);
       console.log(`   ✓ Added ${documents.length} embeddings to vector store`);
+
+      // Step 5: Register in Sui if configured (hybrid mode)
+      if (suiVectorRegistry.isConfigured()) {
+        try {
+          console.log('   Registering in Sui vector registry...');
+          const store = vectorStoreService.getStore();
+
+          // Get the vectors for this document
+          const docVectors = store.memoryVectors.filter(
+            (v: any) => v.metadata.filename === metadata.filename
+          );
+
+          // Register vectors in Sui + upload to Walrus
+          await suiVectorRegistry.addDocument({
+            filename: metadata.filename,
+            vectors: docVectors,
+            documentBlobId: blob.blobId,
+            embeddingModel: config.openai.embeddingModel,
+          });
+
+          console.log('   ✓ Registered in Sui registry');
+        } catch (error) {
+          console.warn('   ⚠️  Failed to register in Sui (continuing anyway):', error);
+        }
+      }
 
       const storedDoc: StoredDocument = {
         id: blob.blobId,
