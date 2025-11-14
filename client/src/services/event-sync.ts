@@ -1,5 +1,5 @@
-import { suiVectorRegistry } from '@/services/sui-vector-registry.js';
-import { vectorStoreService } from '@/services/vector-store.js';
+import { suiVectorRegistry } from '@/services/sui-vector-registry';
+import { vectorStoreService } from '@/services/vector-store';
 
 /**
  * Event Sync Service
