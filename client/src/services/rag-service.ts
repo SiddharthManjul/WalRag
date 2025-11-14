@@ -3,10 +3,10 @@ import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
-import { walrusClient } from '@/services/walrus-client.js';
-import { vectorStoreService } from '@/services/vector-store.js';
-import { suiVectorRegistry } from '@/services/sui-vector-registry.js';
-import { config } from '@/services/config';
+import { walrusClient } from '@/services/walrus-client';
+import { vectorStoreService } from '@/services/vector-store';
+import { suiVectorRegistry } from '@/services/sui-vector-registry';
+import { config } from '@/config';
 import { RAGQuery, RAGResult, StoredDocument } from '../types/index.js';
 
 export class RAGService {
