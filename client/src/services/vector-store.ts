@@ -1,8 +1,8 @@
-import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import { MemoryVectorStore } from '@/utils/memory-vectorstore';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Document } from '@langchain/core/documents';
-import { config } from '@/services/config';
-import { suiVectorRegistry } from '@/services/sui-vector-registry.js';
+import { config } from '@/config';
+import { suiVectorRegistry } from '@/services/sui-vector-registry';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -20,13 +20,14 @@ export class VectorStoreService {
   private storePath: string;
   private cacheVersion: number = 0;
   private useSuiRegistry: boolean = false;
+  private initialized: boolean = false;
 
   constructor() {
     this.embeddings = new OpenAIEmbeddings({
       openAIApiKey: config.openai.apiKey,
       modelName: config.openai.embeddingModel,
     });
-    this.storePath = config.vectorDb.path;
+    this.storePath = config.vectorStore.path;
     this.useSuiRegistry = suiVectorRegistry.isConfigured();
   }
 
@@ -75,6 +76,8 @@ export class VectorStoreService {
         await this.save();
         console.log('✓ New vector store created');
       }
+
+      this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize vector store:', error);
       throw error;
@@ -252,6 +255,45 @@ export class VectorStoreService {
     } catch (error) {
       console.error('Failed to delete vector store:', error);
     }
+  }
+
+  /**
+   * Get statistics about the vector store
+   */
+  getStats() {
+    const vectorCount = this.store ? this.store.memoryVectors.length : 0;
+    return {
+      totalVectors: vectorCount,
+      version: this.cacheVersion,
+      isInitialized: this.initialized,
+      useSuiRegistry: this.useSuiRegistry,
+    };
+  }
+
+  /**
+   * Check if vector store is initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Sync from Sui if cache is stale
+   * Returns true if sync was performed
+   */
+  async syncIfStale(): Promise<boolean> {
+    if (!this.useSuiRegistry) {
+      return false;
+    }
+
+    const isStale = await this.isCacheStale();
+    if (isStale) {
+      console.log('🔄 Cache is stale, syncing from Sui registry...');
+      await this.syncFromSuiRegistry();
+      await this.save();
+      return true;
+    }
+    return false;
   }
 
   /**
