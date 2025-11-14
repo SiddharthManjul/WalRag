@@ -17,7 +17,7 @@ export class WalrusClient {
   async uploadBlob(content: string | Buffer, epochs?: number): Promise<WalrusBlob> {
     try {
       const data = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
-      const storageEpochs = epochs || config.walrus.epochs;
+      const storageEpochs = epochs || config.walrus.storageEpochs;
 
       console.log(`Uploading ${data.length} bytes to Walrus for ${storageEpochs} epochs...`);
 

@@ -71,8 +71,7 @@ export class VectorStoreService {
           this.store = new MemoryVectorStore(this.embeddings);
         }
 
-        // Ensure directory exists and save
-        await fs.mkdir(path.dirname(this.storePath), { recursive: true });
+        // Save (will create directory if needed)
         await this.save();
         console.log('✓ New vector store created');
       }
@@ -201,8 +200,8 @@ export class VectorStoreService {
       throw new Error('Vector store not initialized');
     }
 
-    // Ensure directory exists
-    await fs.mkdir(path.dirname(this.storePath), { recursive: true });
+    // Ensure directory exists (storePath is a directory, not a file)
+    await fs.mkdir(this.storePath, { recursive: true });
 
     // Serialize the memory store to JSON with version
     const storageFile = path.join(this.storePath, 'memory-store.json');
