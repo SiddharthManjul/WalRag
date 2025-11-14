@@ -1,5 +1,5 @@
-import { suiClientService } from '@/services/sui-client.js';
-import { walrusClient } from '@/services/walrus-client.js';
+import { suiClientService } from '@/services/sui-client';
+import { walrusClient } from '@/services/walrus-client';
 import {
   serializeVectors,
   deserializeVectors,
@@ -7,7 +7,7 @@ import {
   SerializedVector,
   SerializedVectorStore,
 } from '@/utils/vector-serialization';
-import { config } from '@/services/config';
+import { config } from '@/config';
 
 export interface DocumentVectorMetadata {
   filename: string;
@@ -60,7 +60,7 @@ export class SuiVectorRegistryService {
     const serializedVectors = convertMemoryVectorsToSerializable(params.vectors);
     const vectorData = serializeVectors(serializedVectors, {
       embeddingModel: params.embeddingModel || config.openai.embeddingModel,
-      dimensions: config.vectorDb.dimensions,
+      dimensions: config.vectorStore.dimensions,
     });
 
     // Step 2: Upload vectors to Walrus
