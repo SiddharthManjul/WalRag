@@ -1,7 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
 
 export interface LoadedDocument {
   content: string;
@@ -106,6 +104,9 @@ export class DocumentLoader {
    */
   private async loadPDF(filepath: string): Promise<{ content: string; pageCount: number; fileType: string }> {
     const dataBuffer = await fs.readFile(filepath);
+
+    // Dynamic import for CommonJS module
+    const pdfParse = (await import('pdf-parse')).default;
     const data = await pdfParse(dataBuffer);
 
     return {
@@ -120,6 +121,9 @@ export class DocumentLoader {
    */
   private async loadDOCX(filepath: string): Promise<{ content: string; fileType: string }> {
     const buffer = await fs.readFile(filepath);
+
+    // Dynamic import for CommonJS module
+    const mammoth = (await import('mammoth')).default;
     const result = await mammoth.extractRawText({ buffer });
 
     if (result.messages.length > 0) {

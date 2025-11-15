@@ -15,7 +15,7 @@ export class EmbeddingService {
   /**
    * Generate embeddings for a single text
    */
-  async generateEmbedding(text: string, metadata: Record<string, any> = {}): Promise<EmbeddingResult> {
+  async generateEmbedding(text: string, metadata: Record<string, unknown> = {}): Promise<EmbeddingResult> {
     const embedding = await this.embeddings.embedQuery(text);
     return {
       embedding,
@@ -29,7 +29,7 @@ export class EmbeddingService {
    */
   async generateEmbeddings(
     texts: string[],
-    metadata: Record<string, any>[] = []
+    metadata: Record<string, unknown>[] = []
   ): Promise<EmbeddingResult[]> {
     const embeddings = await this.embeddings.embedDocuments(texts);
 
