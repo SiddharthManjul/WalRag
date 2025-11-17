@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       sources: message.sources,
     };
 
+    // Add message (automatically updates last_activity in metadata)
     await chatService.addMessage(chatId, newMessage);
 
     return NextResponse.json({

@@ -26,14 +26,17 @@ export async function POST(request: NextRequest) {
     // Get user-specific chat service
     const chatService = await getUserChatService(user.userAddr);
 
-    // Check and renew if needed (lazy renewal)
-    await chatService.checkAndRenewChat(chatId);
-
-    // Update last activity
-    await chatService.updateLastActivity(chatId);
+    // Check and renew if needed (lazy renewal on access)
+    const renewed = await chatService.checkAndRenewChat(chatId);
+    if (renewed) {
+      console.log(`Chat ${chatId} was renewed during load`);
+    }
 
     // Load chat data
     const chatData = await chatService.loadChat(chatId);
+
+    // Update last activity in metadata (marks as active)
+    await chatService.updateChatActivity(chatId);
 
     // Get expiry info
     const expiryInfo = await chatService.getChatExpiryInfo(chatId);
@@ -42,6 +45,7 @@ export async function POST(request: NextRequest) {
       success: true,
       chat: chatData,
       expiryInfo,
+      renewed, // Inform client if chat was renewed
     });
   } catch (error: any) {
     console.error("Error loading chat:", error);
