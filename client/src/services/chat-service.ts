@@ -390,15 +390,12 @@ export class ChatService {
       throw new Error("User address is required for chat operations");
     }
 
-    // Delete from Walrus metadata store
+    // Delete from Walrus metadata store (primary storage)
     await chatMetadataStore.deleteChatFromIndex(this.userAddress, chatId);
 
-    // Also delete from Sui registry (optional)
-    try {
-      await this.chatClient.deleteChat(this.getRegistryId(), chatId);
-    } catch (error) {
-      console.warn('Sui deletion failed (non-critical):', error);
-    }
+    // Note: We don't delete from Sui registry because chats are stored in Walrus,
+    // not in the Sui chat_registry Table. The Sui registry is legacy/optional.
+    // Attempting to delete would fail with E_CHAT_NOT_FOUND (error code 2).
   }
 
   /**
