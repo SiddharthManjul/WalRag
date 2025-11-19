@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { EncryptButton } from "./ui/encrypt-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginModal } from "./LoginModal";
+import { WalletDisplay } from "./WalletDisplay";
 
 export function Navbar() {
   const [activeLink, setActiveLink] = useState("");
@@ -72,19 +73,22 @@ export function Navbar() {
           {/* Login/Logout Button */}
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated && account && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent text-sm">
-                {account.picture && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={account.picture}
-                    alt="Profile"
-                    className="w-6 h-6 rounded-full"
-                  />
-                )}
-                <span className="text-muted-foreground">
-                  {account.email || account.name || 'User'}
-                </span>
-              </div>
+              <>
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent text-sm">
+                  {account.picture && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={account.picture}
+                      alt="Profile"
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-muted-foreground">
+                    {account.email || account.name || 'User'}
+                  </span>
+                </div>
+                <WalletDisplay />
+              </>
             )}
             <button
               onClick={handleLoginClick}
