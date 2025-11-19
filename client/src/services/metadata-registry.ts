@@ -100,9 +100,15 @@ export class MetadataRegistry {
   /**
    * Query metadata blob ID from Sui using events
    * More reliable than dynamic field queries
+   * Handles both regular keys (chats) and suffixed keys (documents)
    */
   private async queryFromSui(userAddr: string): Promise<string | null> {
     try {
+      // Check if this is a document key (has _docs suffix)
+      const isDocKey = userAddr.endsWith('_docs');
+      const actualAddr = isDocKey ? userAddr.slice(0, -5) : userAddr;
+      const keyPrefix = isDocKey ? 'docs:' : 'chat:';
+
       // Query MetadataUpdated events for this user
       const events = await this.client.queryEvents({
         query: {
@@ -112,11 +118,16 @@ export class MetadataRegistry {
         order: 'descending', // Most recent first
       });
 
-      // Find most recent event for this user
+      // Find most recent event for this user with matching prefix
       for (const event of events.data) {
         const eventData = event.parsedJson as any;
-        if (eventData.user_address === userAddr) {
-          return eventData.metadata_blob_id;
+        if (eventData.user_address === actualAddr) {
+          const blobId = eventData.metadata_blob_id;
+          // Check if blob ID matches the expected type
+          if (blobId.startsWith(keyPrefix)) {
+            // Return blob ID without prefix
+            return blobId.slice(keyPrefix.length);
+          }
         }
       }
 
@@ -129,16 +140,25 @@ export class MetadataRegistry {
 
   /**
    * Store metadata blob ID on Sui by emitting event
+   * Handles both regular keys (chats) and suffixed keys (documents)
    */
   private async storeOnSui(userAddr: string, blobId: string): Promise<void> {
     const tx = new Transaction();
+
+    // Check if this is a document key (has _docs suffix)
+    const isDocKey = userAddr.endsWith('_docs');
+    const actualAddr = isDocKey ? userAddr.slice(0, -5) : userAddr;
+    const keyPrefix = isDocKey ? 'docs:' : 'chat:';
+
+    // Add prefix to blob ID to differentiate between chats and documents
+    const prefixedBlobId = keyPrefix + blobId;
 
     // Call function that emits MetadataUpdated event
     tx.moveCall({
       target: `${this.packageId}::metadata_registry::update_metadata`,
       arguments: [
-        tx.pure.address(userAddr),
-        tx.pure.string(blobId),
+        tx.pure.address(actualAddr), // Use actual address without suffix
+        tx.pure.string(prefixedBlobId), // Use prefixed blob ID
       ],
     });
 
