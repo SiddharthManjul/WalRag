@@ -1,0 +1,260 @@
+/**
+ * Document Upload Service with Transaction Signing
+ * Handles document uploads with Sui blockchain registration
+ */
+
+import { Transaction } from '@mysten/sui/transactions';
+import { SuiClient } from '@mysten/sui/client';
+
+// Constants
+const DOCUMENT_REGISTRY_PACKAGE_ID = process.env.DOCUMENT_REGISTRY_PACKAGE_ID ||
+  '0xdd4035b1b2b0f209671b7bef2c4de4eee33d1ba22c26c0bd7be083861572daf9';
+
+export interface DocumentUploadParams {
+  file: File;
+  userAddr: string;
+  walrusBlobId: string;
+  registryId?: string; // Optional: user's document registry object ID
+}
+
+export interface DocumentUploadResult {
+  transaction: Transaction;
+  documentId: string;
+  fileHash: Uint8Array;
+  estimatedGas: number;
+}
+
+export class DocumentUploadService {
+  private suiClient: SuiClient;
+
+  constructor() {
+    this.suiClient = new SuiClient({
+      url: 'https://fullnode.testnet.sui.io:443',
+    });
+  }
+
+  /**
+   * Calculate SHA-256 hash of file
+   */
+  async calculateFileHash(file: File): Promise<Uint8Array> {
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    return new Uint8Array(hashBuffer);
+  }
+
+  /**
+   * Check if user has a document registry
+   * Returns the registry object ID if found, null otherwise
+   */
+  async getUserRegistry(userAddr: string): Promise<string | null> {
+    try {
+      const objects = await this.suiClient.getOwnedObjects({
+        owner: userAddr,
+        filter: {
+          StructType: `${DOCUMENT_REGISTRY_PACKAGE_ID}::document_registry::DocumentRegistry`,
+        },
+        options: {
+          showContent: true,
+        },
+      });
+
+      if (objects.data.length > 0) {
+        return objects.data[0].data?.objectId || null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Failed to get user registry:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new document registry for user
+   */
+  async createRegistryTransaction(userAddr: string): Promise<Transaction> {
+    const tx = new Transaction();
+    tx.setSender(userAddr);
+
+    tx.moveCall({
+      target: `${DOCUMENT_REGISTRY_PACKAGE_ID}::document_registry::create_registry`,
+      arguments: [],
+    });
+
+    return tx;
+  }
+
+  /**
+   * Build transaction for document registration
+   */
+  async buildDocumentRegistrationTransaction(
+    params: DocumentUploadParams
+  ): Promise<DocumentUploadResult> {
+    const { file, userAddr, walrusBlobId, registryId } = params;
+
+    // Calculate file hash
+    const fileHash = await this.calculateFileHash(file);
+
+    // Generate document ID
+    const documentId = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+    // Check if user has a registry
+    let userRegistryId = registryId;
+    if (!userRegistryId) {
+      userRegistryId = await this.getUserRegistry(userAddr);
+    }
+
+    // If no registry exists, we need to create one first
+    if (!userRegistryId) {
+      throw new Error(
+        'User does not have a document registry. Please create one first by calling createRegistryTransaction().'
+      );
+    }
+
+    // Build transaction
+    const tx = new Transaction();
+    tx.setSender(userAddr);
+
+    // Convert file hash to vector<u8> format for Move
+    const fileHashArray = Array.from(fileHash);
+
+    // Call register_document
+    tx.moveCall({
+      target: `${DOCUMENT_REGISTRY_PACKAGE_ID}::document_registry::register_document`,
+      arguments: [
+        tx.object(userRegistryId), // registry: &mut DocumentRegistry
+        tx.pure.string(documentId), // document_id: String
+        tx.pure.string(file.name), // filename: String
+        tx.pure(fileHashArray, 'vector<u8>'), // file_hash: vector<u8>
+        tx.pure.u64(file.size), // file_size: u64
+        tx.pure.string(file.type || 'application/octet-stream'), // file_type: String
+        tx.pure.string(walrusBlobId), // walrus_blob_id: String
+      ],
+    });
+
+    // Estimate gas
+    const estimatedGas = await this.estimateGas(tx);
+
+    return {
+      transaction: tx,
+      documentId,
+      fileHash,
+      estimatedGas,
+    };
+  }
+
+  /**
+   * Build transaction for document deletion
+   */
+  async buildDocumentDeletionTransaction(
+    userAddr: string,
+    documentId: string,
+    registryId?: string
+  ): Promise<Transaction> {
+    // Check if user has a registry
+    let userRegistryId = registryId;
+    if (!userRegistryId) {
+      userRegistryId = await this.getUserRegistry(userAddr);
+    }
+
+    if (!userRegistryId) {
+      throw new Error('User does not have a document registry.');
+    }
+
+    // Build transaction
+    const tx = new Transaction();
+    tx.setSender(userAddr);
+
+    tx.moveCall({
+      target: `${DOCUMENT_REGISTRY_PACKAGE_ID}::document_registry::delete_document`,
+      arguments: [
+        tx.object(userRegistryId), // registry: &mut DocumentRegistry
+        tx.pure.string(documentId), // document_id: String
+      ],
+    });
+
+    return tx;
+  }
+
+  /**
+   * Estimate gas cost for transaction
+   */
+  private async estimateGas(transaction: Transaction): Promise<number> {
+    try {
+      const dryRun = await this.suiClient.dryRunTransactionBlock({
+        transactionBlock: await transaction.build({ client: this.suiClient }),
+      });
+
+      const gasUsed = dryRun.effects.gasUsed;
+      const totalGas =
+        parseInt(gasUsed.computationCost) +
+        parseInt(gasUsed.storageCost) -
+        parseInt(gasUsed.storageRebate);
+
+      return totalGas;
+    } catch (error) {
+      console.error('Gas estimation failed:', error);
+      return 10000000; // Default estimate: 0.01 SUI
+    }
+  }
+
+  /**
+   * Get document info from blockchain
+   */
+  async getDocumentInfo(
+    registryId: string,
+    documentId: string
+  ): Promise<any | null> {
+    try {
+      const object = await this.suiClient.getObject({
+        id: registryId,
+        options: {
+          showContent: true,
+        },
+      });
+
+      // Parse the object to get document info
+      // Note: This is a simplified version, actual implementation depends on object structure
+      return object.data;
+    } catch (error) {
+      console.error('Failed to get document info:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if user has sufficient balance for transaction
+   */
+  async checkBalance(
+    userAddr: string,
+    estimatedGas: number
+  ): Promise<{
+    hasBalance: boolean;
+    balance: string;
+    required: string;
+  }> {
+    try {
+      const balanceData = await this.suiClient.getBalance({
+        owner: userAddr,
+      });
+
+      const balance = parseInt(balanceData.totalBalance);
+
+      return {
+        hasBalance: balance >= estimatedGas,
+        balance: balanceData.totalBalance,
+        required: estimatedGas.toString(),
+      };
+    } catch (error) {
+      console.error('Balance check failed:', error);
+      return {
+        hasBalance: false,
+        balance: '0',
+        required: estimatedGas.toString(),
+      };
+    }
+  }
+}
+
+// Export singleton instance
+export const documentUploadService = new DocumentUploadService();
