@@ -30,9 +30,11 @@ const secondaryVariant = {
 export const FileUpload = ({
   onChange,
   onError,
+  disabled = false,
 }: {
   onChange?: (files: File[]) => void;
   onError?: (error: string) => void;
+  disabled?: boolean;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +73,7 @@ export const FileUpload = ({
   const { getRootProps, isDragActive } = useDropzone({
     multiple: false,
     noClick: true,
+    disabled: disabled,
     onDrop: handleFileChange,
     onDropRejected: (rejections) => {
       const errors = rejections.map(r =>
@@ -87,9 +90,12 @@ export const FileUpload = ({
   return (
     <div className="w-full" {...getRootProps()}>
       <motion.div
-        onClick={handleClick}
-        whileHover="animate"
-        className="p-10 group/file block rounded-lg cursor-pointer w-full relative overflow-hidden"
+        onClick={disabled ? undefined : handleClick}
+        whileHover={disabled ? undefined : "animate"}
+        className={cn(
+          "p-10 group/file block rounded-lg w-full relative overflow-hidden",
+          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+        )}
       >
         <input
           ref={fileInputRef}
@@ -98,6 +104,7 @@ export const FileUpload = ({
           onChange={(e) => handleFileChange(Array.from(e.target.files || []))}
           className="hidden"
           accept={ALL_SUPPORTED_EXTENSIONS.join(',')}
+          disabled={disabled}
         />
         <div className="absolute inset-0 mask-[radial-gradient(ellipse_at_center,white,transparent)]">
           <GridPattern />

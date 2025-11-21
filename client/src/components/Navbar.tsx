@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConnectButton } from "@mysten/dapp-kit";
 import { EncryptButton } from "./ui/encrypt-button";
 
 export function Navbar() {
@@ -48,11 +49,9 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* Wallet connection will be added here */}
+          {/* Wallet Connection */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="px-6 py-2 rounded-full bg-accent text-muted-foreground">
-              Wallet provider will be added here
-            </div>
+            <ConnectButton />
           </div>
 
           {/* Mobile menu button */}
