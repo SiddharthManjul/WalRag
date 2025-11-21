@@ -3,15 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EncryptButton } from "./ui/encrypt-button";
-import { useAuth } from "@/contexts/AuthContext";
-import { LoginModal } from "./LoginModal";
-import { WalletDisplay } from "./WalletDisplay";
 
 export function Navbar() {
   const [activeLink, setActiveLink] = useState("");
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, account, logout } = useAuth();
 
   const links = [
     { name: "Upload", path: "/upload" },
@@ -21,25 +16,8 @@ export function Navbar() {
   ];
 
   const handleLinkClick = (link: { name: string; path: string }) => {
-    // Require authentication for certain routes
-    const protectedRoutes = ["/upload", "/chat", "/dashboard"];
-
-    if (protectedRoutes.includes(link.path) && !isAuthenticated) {
-      setShowLoginModal(true);
-      return;
-    }
-
     setActiveLink(link.name);
     router.push(link.path);
-  };
-
-  const handleLoginClick = () => {
-    if (isAuthenticated) {
-      // Show user menu or logout
-      logout();
-    } else {
-      setShowLoginModal(true);
-    }
   };
 
   return (
@@ -70,32 +48,11 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* Login/Logout Button */}
+          {/* Wallet connection will be added here */}
           <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated && account && (
-              <>
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent text-sm">
-                  {account.picture && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={account.picture}
-                      alt="Profile"
-                      className="w-6 h-6 rounded-full"
-                    />
-                  )}
-                  <span className="text-muted-foreground">
-                    {account.email || account.name || 'User'}
-                  </span>
-                </div>
-                <WalletDisplay />
-              </>
-            )}
-            <button
-              onClick={handleLoginClick}
-              className="px-6 py-2 rounded-full bg-linear-to-r from-blue-500 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
-            >
-              {isAuthenticated ? 'Logout' : 'Login'}
-            </button>
+            <div className="px-6 py-2 rounded-full bg-accent text-muted-foreground">
+              Wallet provider will be added here
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -118,9 +75,6 @@ export function Navbar() {
           </div>
         </div>
       </div>
-
-      {/* Login Modal */}
-      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </nav>
   );
 }
