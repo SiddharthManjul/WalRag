@@ -1,6 +1,6 @@
 /**
  * User Registry Manager
- * Maps zkLogin user addresses to their chat registry objects
+ * Maps user wallet addresses to their chat registry objects
  * Stores mapping in localStorage for client-side access
  */
 
