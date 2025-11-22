@@ -38,8 +38,10 @@ module WalRag::chat_registry {
         chat_ids: vector<String>,
         /// Total number of chats
         total_chats: u64,
-        /// Registry owner
+        /// Registry owner (user who created it)
         owner: address,
+        /// Operator address (backend that can write on behalf of owner)
+        operator: address,
         /// Pre-funded renewal budget (in SUI)
         renewal_budget: Balance<SUI>,
         /// Creation timestamp
@@ -110,14 +112,16 @@ module WalRag::chat_registry {
         new_balance: u64,
     }
 
-    /// Initialize a new chat registry for a user
-    public entry fun create_registry(ctx: &mut TxContext) {
+    /// Initialize a new chat registry for a user with operator delegation
+    /// User pays once to create registry and delegates write access to operator (backend)
+    public entry fun create_registry(operator: address, ctx: &mut TxContext) {
         let registry = ChatRegistry {
             id: object::new(ctx),
             chats: table::new(ctx),
             chat_ids: vector::empty(),
             total_chats: 0,
             owner: tx_context::sender(ctx),
+            operator,
             renewal_budget: balance::zero(),
             created_at: tx_context::epoch_timestamp_ms(ctx),
         };
@@ -154,7 +158,8 @@ module WalRag::chat_registry {
         message_count: u64,
         ctx: &mut TxContext
     ) {
-        assert!(registry.owner == tx_context::sender(ctx), E_NOT_OWNER);
+        let sender = tx_context::sender(ctx);
+        assert!(registry.owner == sender || registry.operator == sender, E_NOT_OWNER);
         assert!(!table::contains(&registry.chats, chat_id), E_CHAT_NOT_FOUND);
 
         let now = tx_context::epoch_timestamp_ms(ctx);
@@ -197,7 +202,8 @@ module WalRag::chat_registry {
         blob_epochs: u64,
         ctx: &mut TxContext
     ) {
-        assert!(registry.owner == tx_context::sender(ctx), E_NOT_OWNER);
+        let sender = tx_context::sender(ctx);
+        assert!(registry.owner == sender || registry.operator == sender, E_NOT_OWNER);
         assert!(table::contains(&registry.chats, chat_id), E_CHAT_NOT_FOUND);
 
         let chat = table::borrow_mut(&mut registry.chats, chat_id);
@@ -229,7 +235,8 @@ module WalRag::chat_registry {
         is_important: bool,
         ctx: &mut TxContext
     ) {
-        assert!(registry.owner == tx_context::sender(ctx), E_NOT_OWNER);
+        let sender = tx_context::sender(ctx);
+        assert!(registry.owner == sender || registry.operator == sender, E_NOT_OWNER);
         assert!(table::contains(&registry.chats, chat_id), E_CHAT_NOT_FOUND);
 
         // Check limit when marking as important
@@ -256,7 +263,8 @@ module WalRag::chat_registry {
         blob_epochs: u64,
         ctx: &mut TxContext
     ) {
-        assert!(registry.owner == tx_context::sender(ctx), E_NOT_OWNER);
+        let sender = tx_context::sender(ctx);
+        assert!(registry.owner == sender || registry.operator == sender, E_NOT_OWNER);
         assert!(table::contains(&registry.chats, chat_id), E_CHAT_NOT_FOUND);
 
         // Check renewal budget
@@ -298,7 +306,8 @@ module WalRag::chat_registry {
         chat_id: String,
         ctx: &mut TxContext
     ) {
-        assert!(registry.owner == tx_context::sender(ctx), E_NOT_OWNER);
+        let sender = tx_context::sender(ctx);
+        assert!(registry.owner == sender || registry.operator == sender, E_NOT_OWNER);
         assert!(table::contains(&registry.chats, chat_id), E_CHAT_NOT_FOUND);
 
         let chat = table::borrow_mut(&mut registry.chats, chat_id);
