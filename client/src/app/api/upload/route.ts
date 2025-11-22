@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
       const result = await ragService.ingestDocument(content, {
         filename: metadata.filename,
         fileType: metadata.fileType,
+        owner: user.userAddr,
       });
 
       // Clean up temporary file
