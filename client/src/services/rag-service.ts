@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatOpenAI } from '@langchain/openai';
 import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
@@ -137,11 +138,123 @@ export class RAGService {
   }
 
   /**
+   * Search for relevant sources without generating an answer
+   * Used for access control - filters sources before LLM generation
+   */
+  async searchSources(query: string, topK: number = 4): Promise<Array<{
+    blobId: string;
+    filename: string;
+    score: number;
+    metadata: any;
+  }>> {
+    console.log(`\n🔍 Searching sources for: "${query}"`);
+
+    const searchResults = await vectorStoreService.similaritySearch(query, topK);
+
+    return searchResults.map(({ document, score }) => ({
+      blobId: document.metadata.blobId,
+      filename: document.metadata.filename || 'unknown',
+      score,
+      metadata: document.metadata,
+    }));
+  }
+
+  /**
+   * Generate answer from pre-filtered sources
+   * Used after access control filtering
+   */
+  async generateAnswerFromSources(
+    query: string,
+    sources: Array<{ blobId: string; filename: string; score?: number; content?: string; metadata?: any }>
+  ): Promise<RAGResult> {
+    const startTime = Date.now();
+
+    if (sources.length === 0) {
+      return {
+        answer: 'No accessible documents found to answer your question.',
+        sources: [],
+        metadata: {
+          processingTime: Date.now() - startTime,
+          documentsRetrieved: 0,
+        },
+      };
+    }
+
+    // Retrieve full content for sources that don't have it yet
+    const sourcesWithContent = await Promise.all(
+      sources.map(async (source) => {
+        if (source.content) {
+          return { ...source, score: source.score || 1.0, content: source.content };
+        }
+        try {
+          const content = await walrusClient.getBlobAsString(source.blobId);
+          return { ...source, content, score: source.score || 1.0 };
+        } catch (error) {
+          console.warn(`⚠ Failed to retrieve blob ${source.blobId}:`, error);
+          return null;
+        }
+      })
+    );
+
+    const validSources = sourcesWithContent.filter((s): s is NonNullable<typeof s> => s !== null);
+
+    if (validSources.length === 0) {
+      return {
+        answer: 'Found relevant documents but could not retrieve them from storage.',
+        sources: [],
+        metadata: {
+          processingTime: Date.now() - startTime,
+          documentsRetrieved: 0,
+        },
+      };
+    }
+
+    // Generate answer using LLM
+    const context = validSources
+      .map((source, index) =>
+        `Document ${index + 1}: ${source.filename}\n${source.content}`
+      )
+      .join('\n---\n\n');
+
+    const prompt = ChatPromptTemplate.fromMessages([
+      ['system', 'You are a helpful assistant that answers questions based on the provided context. ' +
+                 'Always cite which document(s) you used to answer. ' +
+                 'If the context does not contain enough information to answer the question, say so.'],
+      ['user', `Context:\n\n{context}\n\n---\n\nQuestion: {question}\n\nAnswer:`],
+    ]);
+
+    const chain = RunnableSequence.from([
+      prompt,
+      this.llm,
+      new StringOutputParser(),
+    ]);
+
+    const answer = await chain.invoke({
+      context,
+      question: query,
+    });
+
+    const processingTime = Date.now() - startTime;
+
+    console.log(`✓ Answer generated from ${validSources.length} sources in ${processingTime}ms\n`);
+
+    return {
+      answer,
+      sources: validSources,
+      metadata: {
+        processingTime,
+        documentsRetrieved: validSources.length,
+      },
+    };
+  }
+
+  /**
    * Ingest a document into the RAG system
    */
   async ingestDocument(content: string, metadata: {
     filename: string;
     fileType?: string;
+    owner?: string;
   }): Promise<StoredDocument> {
     console.log(`\n📄 Ingesting document: ${metadata.filename}`);
 
@@ -163,6 +276,7 @@ export class RAGService {
             blobId: blob.blobId,
             filename: metadata.filename,
             fileType: metadata.fileType || 'text/plain',
+            owner: metadata.owner,
             chunkIndex: index,
             totalChunks: chunks.length,
             uploadedAt: blob.uploadedAt.toISOString(),
