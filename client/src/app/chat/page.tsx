@@ -2,9 +2,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, FileText, Clock, Plus, MessageSquare, Star, AlertCircle, Trash2 } from "lucide-react";
+import { Send, FileText, Clock, Plus, MessageSquare, Star, AlertCircle, Trash2, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
 
 interface Message {
   id: string;
@@ -30,39 +32,75 @@ interface Chat {
   daysRemaining?: number;
 }
 
+const CHAT_REGISTRY_PACKAGE_ID = process.env.NEXT_PUBLIC_CHAT_REGISTRY_PACKAGE_ID ||
+  "0xcd6c26bba8af6837ed38d40e761adb8f795ba65f1a15f735c8eb0cc35b2b1b40";
+
 function ChatPageContent() {
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const suiClient = useSuiClient();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsRegistry, setNeedsRegistry] = useState(false);
+  const [creatingRegistry, setCreatingRegistry] = useState(false);
 
-  // Load all chats on mount
+  // Helper to get auth headers
+  const getAuthHeaders = (): Record<string, string> => {
+    if (!currentAccount) return {};
+    return {
+      'x-user-address': currentAccount.address,
+    };
+  };
+
+  // Load all chats when wallet is connected
   useEffect(() => {
-    loadChats();
-  }, []);
+    if (currentAccount) {
+      loadChats();
+    } else {
+      setLoadingChats(false);
+      setChats([]);
+    }
+  }, [currentAccount]);
 
   const loadChats = async () => {
+    if (!currentAccount) {
+      setError("Please connect your wallet to view chats");
+      return;
+    }
+
     try {
       setLoadingChats(true);
-      const response = await fetch("/api/chat/list");
+      setError(null);
+      const response = await fetch("/api/chat/list", {
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
 
       if (data.success) {
-        // Convert chat metadata to UI format
-        const loadedChats: Chat[] = data.chats.map((chat: any) => ({
-          id: chat.id,
-          title: chat.title || "Untitled Chat",
-          lastMessage: "Click to load messages",
-          timestamp: chat.last_activity,
-          messages: [],
-          isImportant: chat.is_important,
-          expiresAt: chat.blob_expiry_timestamp,
-          daysRemaining: Math.floor((chat.blob_expiry_timestamp - Date.now()) / (24 * 60 * 60 * 1000)),
-        }));
+        // Check if user needs to create registry
+        if (data.needsRegistry) {
+          setNeedsRegistry(true);
+          setChats([]);
+        } else {
+          setNeedsRegistry(false);
+          // Convert chat metadata to UI format
+          const loadedChats: Chat[] = data.chats.map((chat: any) => ({
+            id: chat.id,
+            title: chat.title || "Untitled Chat",
+            lastMessage: "Click to load messages",
+            timestamp: chat.last_activity,
+            messages: [],
+            isImportant: chat.is_important,
+            expiresAt: chat.blob_expiry_timestamp,
+            daysRemaining: Math.floor((chat.blob_expiry_timestamp - Date.now()) / (24 * 60 * 60 * 1000)),
+          }));
 
-        setChats(loadedChats);
+          setChats(loadedChats);
+        }
       }
     } catch (error) {
       console.error("Error loading chats:", error);
@@ -72,13 +110,90 @@ function ChatPageContent() {
     }
   };
 
+  // Create chat registry via wallet signature (one-time setup)
+  const createRegistry = async () => {
+    if (!currentAccount) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      setCreatingRegistry(true);
+      setError(null);
+
+      // Build transaction to create chat registry
+      const tx = new Transaction();
+      tx.setSender(currentAccount.address);
+      tx.moveCall({
+        target: `${CHAT_REGISTRY_PACKAGE_ID}::chat_registry::create_registry`,
+        arguments: [],
+      });
+
+      // Sign and execute transaction
+      const result = await signAndExecuteTransaction({ transaction: tx });
+
+      if (!result.digest) {
+        throw new Error("Failed to create registry - no transaction digest");
+      }
+
+      // Wait for transaction and extract created registry object ID
+      const txResponse = await suiClient.waitForTransaction({
+        digest: result.digest,
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
+      });
+
+      // Find the created ChatRegistry object
+      const createdObject = txResponse.objectChanges?.find(
+        (change) => change.type === "created" &&
+        change.objectType?.includes("ChatRegistry")
+      );
+
+      if (!createdObject || !("objectId" in createdObject)) {
+        throw new Error("Failed to extract registry ID from transaction");
+      }
+
+      const registryId = createdObject.objectId;
+
+      // Store registry ID in backend
+      const storeResponse = await fetch("/api/chat/registry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ registryId }),
+      });
+
+      const storeData = await storeResponse.json();
+
+      if (!storeData.success) {
+        throw new Error(storeData.error || "Failed to store registry ID");
+      }
+
+      // Success! Reload chats
+      setNeedsRegistry(false);
+      await loadChats();
+    } catch (error) {
+      console.error("Error creating registry:", error);
+      setError(error instanceof Error ? error.message : "Failed to create registry");
+    } finally {
+      setCreatingRegistry(false);
+    }
+  };
+
   // Load chat messages when selected
   const loadChatMessages = async (chatId: string) => {
     try {
       setIsLoading(true);
       const response = await fetch("/api/chat/load", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ chatId }),
       });
       const data = await response.json();
@@ -129,6 +244,16 @@ function ChatPageContent() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
+    if (!currentAccount) {
+      setError("Please connect your wallet to send messages");
+      return;
+    }
+
+    if (needsRegistry) {
+      setError("Please create your chat registry first");
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -140,6 +265,7 @@ function ChatPageContent() {
     const currentInput = inputMessage;
     setInputMessage("");
     setIsLoading(true);
+    setError(null);
 
     try {
       // Create new chat or add to existing
@@ -161,15 +287,23 @@ function ChatPageContent() {
         setSelectedChatId(newChatId);
 
         // Save to backend
-        await fetch("/api/chat/create", {
+        const createResponse = await fetch("/api/chat/create", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
           body: JSON.stringify({
             chatId: newChatId,
             title: newChat.title,
             initialMessage: userMessage,
           }),
         });
+
+        const createData = await createResponse.json();
+        if (!createData.success) {
+          throw new Error(createData.error || "Failed to create chat");
+        }
       } else {
         // Add message to existing chat
         setChats((prevChats) =>
@@ -186,14 +320,22 @@ function ChatPageContent() {
         );
 
         // Save message to backend
-        await fetch("/api/chat/message", {
+        const userMessageResponse = await fetch("/api/chat/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
           body: JSON.stringify({
             chatId: selectedChatId,
             message: userMessage,
           }),
         });
+
+        const userMessageData = await userMessageResponse.json();
+        if (!userMessageData.success) {
+          throw new Error(userMessageData.error || "Failed to save message");
+        }
       }
 
       // Query RAG system for response
@@ -224,18 +366,27 @@ function ChatPageContent() {
 
       // Save assistant message to backend
       if (currentChatId) {
-        await fetch("/api/chat/message", {
+        const messageResponse = await fetch("/api/chat/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
           body: JSON.stringify({
             chatId: currentChatId,
             message: assistantMessage,
           }),
         });
+
+        const messageData = await messageResponse.json();
+        if (!messageData.success) {
+          console.error("Failed to save assistant message:", messageData.error);
+          // Don't throw - message is already shown in UI
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      setError("Failed to send message");
+      setError(error instanceof Error ? error.message : "Failed to send message");
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +416,10 @@ function ChatPageContent() {
     try {
       await fetch("/api/chat/importance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({
           chatId,
           isImportant: newImportantStatus,
@@ -301,7 +455,10 @@ function ChatPageContent() {
     try {
       await fetch("/api/chat/delete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ chatId }),
       });
     } catch (error) {
@@ -343,8 +500,52 @@ function ChatPageContent() {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
-          {loadingChats ? (
+          {!currentAccount ? (
+            <div className="p-4 text-center">
+              <div className="text-gray-500 dark:text-gray-400 mb-2">
+                Wallet not connected
+              </div>
+              <div className="text-sm text-gray-400 dark:text-gray-500">
+                Connect your wallet to view and create chats
+              </div>
+            </div>
+          ) : loadingChats ? (
             <div className="p-4 text-center text-gray-500">Loading chats...</div>
+          ) : needsRegistry ? (
+            <div className="p-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                      Create Your Chat Registry
+                    </h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                      One-time setup: Create your personal chat registry on Sui blockchain.
+                      You will sign one transaction (~0.002 SUI gas), then all future chats
+                      will be stored without additional signatures.
+                    </p>
+                    <button
+                      onClick={createRegistry}
+                      disabled={creatingRegistry}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creatingRegistry ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Creating Registry...
+                        </>
+                      ) : (
+                        <>
+                          <Wallet className="h-4 w-4" />
+                          Create Registry
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : chats.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               No chats yet. Start a new conversation!
