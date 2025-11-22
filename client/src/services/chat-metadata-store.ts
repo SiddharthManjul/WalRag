@@ -84,6 +84,7 @@ export class ChatMetadataStore {
 
     if (!blobId) {
       // No index exists yet, return empty
+      console.log(`[Chat Index] No index found for ${userAddr.slice(0, 10)}..., creating new`);
       return {
         userAddr,
         chats: [],
@@ -93,7 +94,9 @@ export class ChatMetadataStore {
 
     try {
       const data = await this.walrusClient.getBlobAsString(blobId);
-      return JSON.parse(data);
+      const index = JSON.parse(data);
+      console.log(`[Chat Index] Loaded index for ${userAddr.slice(0, 10)}... from ${blobId.slice(0, 20)}... (${index.chats.length} chats)`);
+      return index;
     } catch (error) {
       console.error('Failed to load user index from Walrus:', error);
       // Return empty index if loading fails
@@ -113,6 +116,8 @@ export class ChatMetadataStore {
 
     const jsonData = JSON.stringify(index);
     const blob = await this.walrusClient.uploadBlob(Buffer.from(jsonData));
+
+    console.log(`[Chat Index] Uploaded index for ${index.userAddr.slice(0, 10)}... → ${blob.blobId.slice(0, 20)}... (${index.chats.length} chats)`);
 
     // Cache the blob ID (stores on Sui if server-side)
     await this.setUserIndexBlobId(index.userAddr, blob.blobId);
