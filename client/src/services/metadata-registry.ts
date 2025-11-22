@@ -8,9 +8,15 @@ import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { config } from '@/config';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 // Server-side cache (ephemeral, for performance)
 const serverCache = new Map<string, string>();
+
+// File-based cache path
+const CACHE_DIR = path.join(process.cwd(), 'data', 'metadata-cache');
+const CACHE_FILE = path.join(CACHE_DIR, 'blob-ids.json');
 
 export interface MetadataRegistryEntry {
   userAddr: string;
@@ -47,17 +53,46 @@ export class MetadataRegistry {
   }
 
   /**
+   * Load file cache
+   */
+  private async loadFileCache(): Promise<Map<string, string>> {
+    try {
+      const data = await fs.readFile(CACHE_FILE, 'utf-8');
+      const json = JSON.parse(data);
+      return new Map(Object.entries(json));
+    } catch {
+      return new Map();
+    }
+  }
+
+  /**
+   * Save file cache
+   */
+  private async saveFileCache(cache: Map<string, string>): Promise<void> {
+    try {
+      await fs.mkdir(CACHE_DIR, { recursive: true });
+      const json = JSON.stringify(Object.fromEntries(cache), null, 2);
+      await fs.writeFile(CACHE_FILE, json, 'utf-8');
+    } catch (error) {
+      console.error('Failed to save file cache:', error);
+    }
+  }
+
+  /**
    * Get metadata blob ID with automatic fallback chain
-   * 1. Server cache (fastest)
-   * 2. Sui blockchain (reliable)
+   * IMPORTANT: File cache is the source of truth in multi-process environments (Next.js)
+   * 1. File cache (source of truth, survives restarts & processes)
+   * 2. Sui blockchain (reliable, decentralized)
    * 3. Return null (new user)
    */
   async getMetadataBlobId(userAddr: string): Promise<string | null> {
-    // Layer 1: Check server cache (fastest)
-    const cached = serverCache.get(userAddr);
-    if (cached) {
-      console.log(`[Cache Hit] Found metadata blob ID for ${userAddr.slice(0, 10)}...`);
-      return cached;
+    // Layer 1: Check file cache (source of truth for multi-process)
+    const fileCache = await this.loadFileCache();
+    const fileCached = fileCache.get(userAddr);
+    if (fileCached) {
+      console.log(`[File Hit] Found metadata blob ID for ${userAddr.slice(0, 10)}...`);
+      serverCache.set(userAddr, fileCached); // Update memory cache
+      return fileCached;
     }
 
     // Layer 2: Query Sui blockchain (reliable, survives restarts)
@@ -67,6 +102,8 @@ export class MetadataRegistry {
         console.log(`[Sui Hit] Found metadata blob ID for ${userAddr.slice(0, 10)}...`);
         // Cache for future requests
         serverCache.set(userAddr, blobId);
+        fileCache.set(userAddr, blobId);
+        await this.saveFileCache(fileCache);
         return blobId;
       }
     } catch (error) {
@@ -79,35 +116,47 @@ export class MetadataRegistry {
   }
 
   /**
-   * Store metadata blob ID on Sui blockchain
+   * Store metadata blob ID on Sui blockchain and file cache
    */
   async setMetadataBlobId(userAddr: string, blobId: string): Promise<void> {
-    try {
-      // Store on Sui blockchain
-      await this.storeOnSui(userAddr, blobId);
+    // Update memory cache (immediate availability)
+    serverCache.set(userAddr, blobId);
 
-      // Update server cache
-      serverCache.set(userAddr, blobId);
+    // Update file cache (survives restarts)
+    const fileCache = await this.loadFileCache();
+    fileCache.set(userAddr, blobId);
+    await this.saveFileCache(fileCache);
 
-      console.log(`[Stored] Metadata blob ID for ${userAddr.slice(0, 10)}... → ${blobId.slice(0, 20)}...`);
-    } catch (error) {
-      console.error('Error storing metadata blob ID on Sui:', error);
-      // Still cache locally even if Sui fails
-      serverCache.set(userAddr, blobId);
-    }
+    console.log(`[Stored] Metadata blob ID for ${userAddr.slice(0, 10)}... → ${blobId.slice(0, 20)}...`);
+
+    // Skip Sui storage for now due to gas coin conflicts
+    // TODO: Re-enable with user wallet signatures instead of backend keypair
   }
 
   /**
    * Query metadata blob ID from Sui using events
    * More reliable than dynamic field queries
-   * Handles both regular keys (chats) and suffixed keys (documents)
+   * Handles regular keys (chats), suffixed keys (documents), and registry keys
    */
   private async queryFromSui(userAddr: string): Promise<string | null> {
     try {
-      // Check if this is a document key (has _docs suffix)
-      const isDocKey = userAddr.endsWith('_docs');
-      const actualAddr = isDocKey ? userAddr.slice(0, -5) : userAddr;
-      const keyPrefix = isDocKey ? 'docs:' : 'chat:';
+      // Determine key type and extract actual address
+      let actualAddr: string;
+      let keyPrefix: string;
+
+      if (userAddr.endsWith('_chat_registry')) {
+        // Chat registry ID storage
+        actualAddr = userAddr.slice(0, -14); // Remove '_chat_registry'
+        keyPrefix = 'registry:';
+      } else if (userAddr.endsWith('_docs')) {
+        // Document metadata storage
+        actualAddr = userAddr.slice(0, -5); // Remove '_docs'
+        keyPrefix = 'docs:';
+      } else {
+        // Chat metadata storage (default)
+        actualAddr = userAddr;
+        keyPrefix = 'chat:';
+      }
 
       // Query MetadataUpdated events for this user
       const events = await this.client.queryEvents({
@@ -140,17 +189,30 @@ export class MetadataRegistry {
 
   /**
    * Store metadata blob ID on Sui by emitting event
-   * Handles both regular keys (chats) and suffixed keys (documents)
+   * Handles regular keys (chats), suffixed keys (documents), and registry keys
    */
   private async storeOnSui(userAddr: string, blobId: string): Promise<void> {
     const tx = new Transaction();
 
-    // Check if this is a document key (has _docs suffix)
-    const isDocKey = userAddr.endsWith('_docs');
-    const actualAddr = isDocKey ? userAddr.slice(0, -5) : userAddr;
-    const keyPrefix = isDocKey ? 'docs:' : 'chat:';
+    // Determine key type and extract actual address
+    let actualAddr: string;
+    let keyPrefix: string;
 
-    // Add prefix to blob ID to differentiate between chats and documents
+    if (userAddr.endsWith('_chat_registry')) {
+      // Chat registry ID storage
+      actualAddr = userAddr.slice(0, -14); // Remove '_chat_registry'
+      keyPrefix = 'registry:';
+    } else if (userAddr.endsWith('_docs')) {
+      // Document metadata storage
+      actualAddr = userAddr.slice(0, -5); // Remove '_docs'
+      keyPrefix = 'docs:';
+    } else {
+      // Chat metadata storage (default)
+      actualAddr = userAddr;
+      keyPrefix = 'chat:';
+    }
+
+    // Add prefix to blob ID to differentiate between different types
     const prefixedBlobId = keyPrefix + blobId;
 
     // Call function that emits MetadataUpdated event
