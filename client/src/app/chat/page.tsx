@@ -33,7 +33,9 @@ interface Chat {
 }
 
 const CHAT_REGISTRY_PACKAGE_ID = process.env.NEXT_PUBLIC_CHAT_REGISTRY_PACKAGE_ID ||
-  "0xcd6c26bba8af6837ed38d40e761adb8f795ba65f1a15f735c8eb0cc35b2b1b40";
+  "0x59fc8bb84869c440fefffa12e919999e042b09e686840411b010c9199df64e26";
+const BACKEND_OPERATOR_ADDRESS = process.env.NEXT_PUBLIC_BACKEND_OPERATOR_ADDRESS ||
+  "0xa7d0740b247a14ea578bf6f65b352d56e4fa6fdc8f69a6ce4b1276513bb85d2c";
 
 function ChatPageContent() {
   const currentAccount = useCurrentAccount();
@@ -121,12 +123,14 @@ function ChatPageContent() {
       setCreatingRegistry(true);
       setError(null);
 
-      // Build transaction to create chat registry
+      // Build transaction to create chat registry with backend as operator
       const tx = new Transaction();
       tx.setSender(currentAccount.address);
       tx.moveCall({
         target: `${CHAT_REGISTRY_PACKAGE_ID}::chat_registry::create_registry`,
-        arguments: [],
+        arguments: [
+          tx.pure.address(BACKEND_OPERATOR_ADDRESS), // Backend can write on behalf of user
+        ],
       });
 
       // Sign and execute transaction
