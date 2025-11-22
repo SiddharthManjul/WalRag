@@ -27,6 +27,18 @@ export async function POST(request: NextRequest) {
     // Get user-specific chat service
     const chatService = await getUserChatService(user.userAddr);
 
+    // If no registry, user needs to create one first
+    if (!chatService) {
+      return NextResponse.json(
+        {
+          error: "No chat registry found",
+          needsRegistry: true,
+          message: "Please create your chat registry first via wallet"
+        },
+        { status: 403 }
+      );
+    }
+
     // Create the message object
     const message: Message = {
       id: initialMessage.id || Date.now().toString(),
