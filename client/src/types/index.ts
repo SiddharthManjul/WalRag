@@ -5,6 +5,15 @@ export interface WalrusBlob {
   metadata?: Record<string, unknown>;
 }
 
+export interface EncryptionMetadata {
+  sealEncryptedObjectId: string;
+  encryptionAlgorithm: 'aes' | 'hmac';
+  threshold: number;
+  keyServerIds: string[];
+  accessPolicyId: string;
+  encryptedAt: number;
+}
+
 export interface StoredDocument {
   id: string;
   blobId: string;
@@ -16,7 +25,9 @@ export interface StoredDocument {
     size: number;
     owner?: string;
     isEncrypted?: boolean;
+    isPrivate?: boolean;
     accessPolicy?: string;
+    encryptionMetadata?: EncryptionMetadata;
   };
 }
 
@@ -53,4 +64,24 @@ export interface AccessControlPolicy {
   isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
+  policyObjectId?: string; // Sui object ID for the policy
+}
+
+export interface ChatEncryptionMetadata {
+  sealEncryptedObjectId: string;
+  accessPolicyId: string;
+  encryptedAt: number;
+}
+
+export interface ChatMetadata {
+  chatId: string;
+  title: string;
+  created_at: number;
+  last_activity: number;
+  message_count: number;
+  messages_blob_id: string;
+  owner: string;
+  isPrivate?: boolean;
+  linkedDocumentId?: string;
+  encryptionMetadata?: ChatEncryptionMetadata;
 }
