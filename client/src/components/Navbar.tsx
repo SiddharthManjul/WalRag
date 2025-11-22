@@ -12,6 +12,7 @@ export function Navbar() {
   const links = [
     { name: "Upload", path: "/upload" },
     { name: "Chat", path: "/chat" },
+    { name: "Documents", path: "/documents" },
     { name: "Dashboard", path: "/dashboard" },
     { name: "Docs", path: "/docs" },
   ];
