@@ -33,7 +33,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="relative bg-background border-t border-border">
+    <footer className="relative bg-background">
       <div className="relative z-10">
         {/* Main Footer Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -152,7 +152,6 @@ export function Footer() {
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="border-t border-border"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
@@ -164,7 +163,7 @@ export function Footer() {
         </motion.div>
 
         {/* Copyright Section */}
-        <div className="border-t border-border">
+        <div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <p className="text-sm text-muted-foreground">

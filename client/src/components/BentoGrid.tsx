@@ -29,23 +29,14 @@ export function BentoGrid() {
 
         <ul className="grid grid-cols-1 grid-rows-none gap-6 md:grid-cols-12 md:grid-rows-3 lg:gap-6 xl:max-h-fit xl:grid-rows-2 ">
           <GridItem
-            area="md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]"
+            area="md:[grid-area:2/1/3/7] xl:[grid-area:1/1/3/5]"
             icon={<Database className="h-5 w-5" />}
             iconGradient="from-blue-500 to-cyan-500"
-            title="Decentralized Storage"
-            description="Store your data on Walrus, a decentralized storage network built on Sui blockchain with guaranteed availability."
-          />
+            title="Storarc"
+            description="Storarc is a decentralized, AI-powered knowledge engine that gives you permanent, verifiable, and privacy-preserving control over your data. Using Walrus for decentralized storage and Sui for on-chain provenance, every document is hashed, immutably stored, and provably owned by you. Storarc enhances your files with OpenAI embeddings and an optimized RAG pipeline, enabling natural language search and context-aware answers from your own documents. Privacy is reinforced through client-side encryption powered by SEAL, ensuring your data remains secure even before it reaches decentralized storage. With support for multiple file formats, intelligent chunking, vector indexing, and permanent chat histories, Storarc becomes your personal or team-based, censorship-resistant knowledge vault. Whether you’re a developer, researcher, or organization, Storarc delivers a transparent, encrypted, and AI-augmented way to preserve information forever—independent of any centralized cloud."/>
 
           <GridItem
-            area="md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]"
-            icon={<MessageSquare className="h-5 w-5" />}
-            iconGradient="from-purple-500 to-pink-500"
-            title="AI-Powered Search"
-            description="Query your documents using natural language with RAG technology. Ask questions, get instant answers from your data."
-          />
-
-          <GridItem
-            area="md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]"
+            area="md:[grid-area:1/1/2/7] xl:[grid-area:1/5/2/8]"
             icon={<Lock className="h-5 w-5" />}
             iconGradient="from-orange-500 to-red-500"
             title="Blockchain Verified"
@@ -53,11 +44,19 @@ export function BentoGrid() {
           />
 
           <GridItem
+            area="md:[grid-area:1/7/2/13] xl:[grid-area:2/5/3/8]"
+            icon={<MessageSquare className="h-5 w-5" />}
+            iconGradient="from-purple-500 to-pink-500"
+            title="AI-Powered Search"
+            description="Query your documents using natural language with RAG technology. Ask questions, get instant answers from your data."
+          />
+
+          <GridItem
             area="md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]"
             icon={<Zap className="h-5 w-5" />}
             iconGradient="from-yellow-500 to-orange-500"
             title="Lightning Fast"
-            description="Retrieve documents instantly with distributed edge caching and optimized vector search."
+            description="Retrieve documents instantly with Storarc’s distributed edge caching and optimized vector search, which accelerate content delivery across the network. Even large, encrypted datasets become quickly accessible, enabling fast, context-aware retrieval powered by AI—no matter where your data is stored within the decentralized storage layer."
           />
 
           <GridItem
@@ -65,7 +64,7 @@ export function BentoGrid() {
             icon={<Shield className="h-5 w-5" />}
             iconGradient="from-green-500 to-emerald-500"
             title="Enterprise Security"
-            description="End-to-end encryption with granular access control. Your data stays private and secure."
+            description="End-to-end encryption with granular access control ensures every document is protected from the moment it’s uploaded. With SEAL-powered client-side encryption and permissioned access layers, your data stays private, secure, and readable only by authorized users—never exposed to intermediaries, storage providers, or the network."
           />
         </ul>
       </div>
@@ -81,7 +80,13 @@ interface GridItemProps {
   description: React.ReactNode;
 }
 
-const GridItem = ({ area, icon, iconGradient, title, description }: GridItemProps) => {
+const GridItem = ({
+  area,
+  icon,
+  iconGradient,
+  title,
+  description,
+}: GridItemProps) => {
   return (
     <motion.li
       initial={{ opacity: 0, y: 20 }}
@@ -100,18 +105,18 @@ const GridItem = ({ area, icon, iconGradient, title, description }: GridItemProp
         />
         <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl bg-[#b35340] p-8 md:p-8 shadow-lg">
           <div className="relative flex flex-1 flex-col justify-between gap-4">
-            <div className={`w-fit rounded-xl bg-linear-to-br ${iconGradient} p-3 shadow-lg`}>
-              <div className="text-white">
-                {icon}
-              </div>
+            <div
+              className={`w-fit rounded-xl bg-linear-to-br ${iconGradient} p-3 shadow-lg`}
+            >
+              <div className="text-white">{icon}</div>
             </div>
             <div className="space-y-3">
               <h3 className="font-sans text-2xl font-bold text-[#ffedea] md:text-2xl">
                 {title}
               </h3>
-              <p className="font-sans text-base leading-relaxed text-black">
+              <div className="font-sans text-base leading-relaxed text-black">
                 {description}
-              </p>
+              </div>
             </div>
           </div>
         </div>
