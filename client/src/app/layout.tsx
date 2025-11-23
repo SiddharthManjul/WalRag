@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@mysten/dapp-kit/dist/index.css";
 import { WalletProviders } from "@/components/WalletProviders";
+import { Navbar } from "@/components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Storarc - Decentralized Storage",
   description: "Secure decentralized storage powered by Sui",
+  icons: {
+    icon: "/storarc.jpeg",
+    shortcut: "/storarc.jpeg",
+    apple: "/storarc.jpeg",
+  },
 };
 
 export default function RootLayout({
@@ -30,6 +36,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <WalletProviders>
+          <Navbar />
           {children}
         </WalletProviders>
       </body>
