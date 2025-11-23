@@ -166,13 +166,13 @@ export function WorldMapSection() {
         >
           <div className="text-center">
             <div className="text-3xl sm:text-4xl font-bold bg-clip-text text-[#3d3436] mb-2">
-              150+
+              600+
             </div>
             <div className="text-sm text-[#b35340]">Storage Nodes</div>
           </div>
           <div className="text-center">
             <div className="text-3xl sm:text-4xl font-bold bg-clip-text text-[#3d3436] mb-2">
-              45
+              90+
             </div>
             <div className="text-sm text-[#b35340]">Countries</div>
           </div>
