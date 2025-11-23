@@ -7,10 +7,10 @@ import { Github, Twitter, Linkedin, Mail } from "lucide-react";
 export function Footer() {
   const navigation = {
     product: [
-      { name: "Upload", href: "#" },
-      { name: "Chat", href: "#" },
-      { name: "Dashboard", href: "#" },
-      { name: "Docs", href: "#" },
+      { name: "Upload", href: "/upload" },
+      { name: "Chat", href: "/chat" },
+      { name: "Dashboard", href: "/dashboard" },
+      { name: "Docs", href: "/docs" },
     ],
     resources: [
       { name: "Documentation", href: "#" },
