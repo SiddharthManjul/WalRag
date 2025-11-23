@@ -242,7 +242,7 @@ export default function DocumentsPage() {
                         <h3 className="font-semibold text-sm md:text-base text-[#3d3436] truncate">
                           {doc.filename}
                         </h3>
-                        <p className="text-xs md:text-sm text-[#3d3436]/60 mt-1 break-words">
+                        <p className="text-xs md:text-sm text-[#3d3436]/60 mt-1 wrap-break-word">
                           {(doc.size / 1024).toFixed(2)} KB •{' '}
                           {new Date(doc.uploadedAt).toLocaleDateString()}
                         </p>
