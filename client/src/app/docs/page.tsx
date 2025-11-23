@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import {
+    Info,
   BookOpen,
   Shield,
   Zap,
@@ -57,6 +58,7 @@ export default function DocsPage() {
     { id: 'security', title: 'Enterprise Security', icon: Shield },
     { id: 'getting-started', title: 'Getting Started', icon: Zap },
     { id: 'developer-guide', title: 'Developer Guide', icon: Code },
+    { id: 'disclaimer', title: 'Disclaimer', icon: Info },
   ];
 
   return (
@@ -548,6 +550,34 @@ export default function DocsPage() {
                         <ExternalLink className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       </a>
                     </div>
+                  </div>
+                </section>
+                <section id="disclaimer" className="scroll-mt-20 md:scroll-mt-24">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#3d3436] mb-4 md:mb-6">Disclaimer</h2>
+                  <div className="space-y-3 md:space-y-4 text-sm md:text-base text-[#3d3436] leading-relaxed">
+                    <ol className="space-y-3 md:space-y-4 text-sm md:text-base text-[#3d3436]/90">
+                        <li className="flex gap-2 md:gap-3">
+                          <span className="font-bold text-[#ff7e5f] shrink-0">1.</span>
+                          <div>
+                            <strong>Latency</strong> <br /> Due to the decentralized architecture and encryption processes, users may experience higher latency compared to traditional centralized systems. With bigger uploaded files, the latency will be higher. We recommend uploading documents less than <strong>50Kb</strong> to face lower latency. We are actively working on optimizations to improve response times.
+                          </div>
+                        </li>
+                        <li className="flex gap-2 md:gap-3">
+                          <span className="font-bold text-[#ff7e5f] shrink-0">2.</span>
+                          <div>
+                            <strong>Data Availability</strong> <br /> While Storarc leverages a decentralized network for storage with persistence, there may be instances where certain nodes are temporarily unavailable. We recommend maintaining local backups of critical documents to ensure uninterrupted access.
+                            
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-2 md:gap-3">
+                          <span className="font-bold text-[#ff7e5f] shrink-0">4.</span>
+                          <div>
+                            <strong>Testnet only</strong> <br /> Storarc is currently deployed on the Sui Testnet and Walrus Testnet for development and testing purposes. Users should not rely on it for production use cases until a mainnet deployment is available.
+                          </div>
+                        </li>
+                        
+                      </ol>
                   </div>
                 </section>
               </div>
