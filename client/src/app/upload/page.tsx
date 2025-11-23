@@ -111,15 +111,15 @@ export default function UploadPage() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-linear-to-r from-blue-500 to-purple-600 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3d3436] mb-4">
             <Upload className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-            <span className="bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-[#3d3436] bg-clip-text text-transparent">
               Upload Your Documents
             </span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-[#b35340] max-w-2xl mx-auto">
             Upload your documents to Storarc&apos;s decentralized storage. Your files will be securely stored on Walrus and indexed for AI-powered search.
           </p>
         </motion.div>
@@ -150,9 +150,9 @@ export default function UploadPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mb-8"
         >
-          <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
+          <div className="border-2 border-[#b35340] rounded-xl p-6 shadow-lg bg-[#feb47b]">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-500" />
+              <FileText className="w-5 h-5 text-[#3d3436]" />
               Supported File Formats
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -160,7 +160,7 @@ export default function UploadPage() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Text Documents</h4>
                 <div className="flex flex-wrap gap-2">
                   {SUPPORTED_FORMATS.TEXT.map((ext) => (
-                    <span key={ext} className="px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-sm">
+                    <span key={ext} className="px-2 py-1 bg-blue-500/10 text-[#3d3436] rounded text-sm">
                       {getFormatName(ext)}
                     </span>
                   ))}
@@ -170,7 +170,7 @@ export default function UploadPage() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Office Documents</h4>
                 <div className="flex flex-wrap gap-2">
                   {SUPPORTED_FORMATS.OFFICE.map((ext) => (
-                    <span key={ext} className="px-2 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded text-sm">
+                    <span key={ext} className="px-2 py-1 bg-purple-500/10 text-[#3d3436] rounded text-sm">
                       {getFormatName(ext)}
                     </span>
                   ))}
@@ -180,7 +180,7 @@ export default function UploadPage() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Data Formats</h4>
                 <div className="flex flex-wrap gap-2">
                   {SUPPORTED_FORMATS.DATA.map((ext) => (
-                    <span key={ext} className="px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-sm">
+                    <span key={ext} className="px-2 py-1 bg-green-500/10 text-[#3d3436] rounded text-sm">
                       {getFormatName(ext)}
                     </span>
                   ))}
@@ -190,7 +190,7 @@ export default function UploadPage() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Web Formats</h4>
                 <div className="flex flex-wrap gap-2">
                   {SUPPORTED_FORMATS.WEB.map((ext) => (
-                    <span key={ext} className="px-2 py-1 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded text-sm">
+                    <span key={ext} className="px-2 py-1 bg-orange-500/10 text-[#3d3436] rounded text-sm">
                       {getFormatName(ext)}
                     </span>
                   ))}
@@ -207,7 +207,7 @@ export default function UploadPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8"
         >
-          <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
+          <div className="bg-[#feb47b] border-2 border-[#b35340] rounded-xl p-6 shadow-lg">
             <UploadModeSelector
               mode={uploadMode}
               onChange={setUploadMode}
@@ -223,7 +223,7 @@ export default function UploadPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mb-8"
         >
-          <div className="bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-[#feb47b] border-2 border-[#b35340] rounded-xl shadow-lg overflow-hidden">
             <FileUpload
               onChange={handleFileUpload}
               onError={handleError}
@@ -242,7 +242,7 @@ export default function UploadPage() {
               className="mb-8"
             >
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6 flex items-center gap-4">
-                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                <Loader2 className="w-6 h-6 text-[#3d3436] animate-spin" />
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Uploading...</h3>
                   <p className="text-sm text-muted-foreground">
@@ -263,48 +263,63 @@ export default function UploadPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="mb-8"
             >
-              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6">
+              <div className="bg-[#feb47b] border-2 border-[#b35340] rounded-xl p-6 shadow-lg">
                 <div className="flex items-start gap-4">
-                  <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 mt-1" />
+                  <div className="w-12 h-12 rounded-full bg-[#ff7e5f]/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-[#ff7e5f]" />
+                  </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                    <h3 className="text-xl font-bold text-[#3d3436] mb-2 flex items-center gap-2">
                       Upload Successful!
                       {uploadedFile.isPrivate && (
-                        <span className="ml-2 px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded-full">
+                        <span className="px-3 py-1 text-xs bg-[#ff7e5f]/20 text-[#3d3436] rounded-full font-medium">
                           🔒 Encrypted
                         </span>
                       )}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-[#3d3436]/80 mb-4">
                       Your document has been {uploadedFile.isPrivate ? 'encrypted and ' : ''}uploaded to Walrus and registered on Sui blockchain.
                       {uploadedFile.isPrivate && ' Only you and users you grant access to can decrypt and view this document.'}
                     </p>
-                    <div className="bg-background rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-muted-foreground">Filename:</span>
-                        <span className="text-sm font-mono text-foreground">{uploadedFile.name}</span>
+                    <div className="bg-[#ffedea] rounded-lg p-5 space-y-3 border border-[#b35340]/20">
+                      <div className="flex justify-between items-center gap-4">
+                        <span className="text-sm font-semibold text-[#3d3436]">Filename:</span>
+                        <span className="text-sm font-mono text-[#3d3436]/90 break-all text-right">{uploadedFile.name}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-muted-foreground">Document ID:</span>
-                        <span className="text-sm font-mono text-foreground">{uploadedFile.blobId.substring(0, 20)}...</span>
-                      </div>
-                      {uploadedFile.txDigest && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-muted-foreground">Transaction:</span>
+                      <div className="border-t border-[#b35340]/10 pt-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-sm font-semibold text-[#3d3436]">Blob ID:</span>
                           <a
-                            href={`https://suiscan.xyz/testnet/tx/${uploadedFile.txDigest}`}
+                            href={`https://walruscan.com/testnet/blob/${uploadedFile.blobId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm font-mono text-blue-500 hover:text-blue-600 underline"
+                            className="text-sm font-mono text-[#ff7e5f] hover:text-[#ff9a76] underline break-all text-right transition-colors"
+                            title="View on Walrus Scan"
                           >
-                            {uploadedFile.txDigest.substring(0, 20)}...
+                            {uploadedFile.blobId}
                           </a>
+                        </div>
+                      </div>
+                      {uploadedFile.txDigest && (
+                        <div className="border-t border-[#b35340]/10 pt-3">
+                          <div className="flex justify-between items-start gap-4">
+                            <span className="text-sm font-semibold text-[#3d3436]">Transaction:</span>
+                            <a
+                              href={`https://suiscan.xyz/testnet/tx/${uploadedFile.txDigest}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-mono text-[#ff7e5f] hover:text-[#ff9a76] underline break-all text-right transition-colors"
+                              title="View on Sui Scan"
+                            >
+                              {uploadedFile.txDigest}
+                            </a>
+                          </div>
                         </div>
                       )}
                     </div>
                     <button
                       onClick={resetUpload}
-                      className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                      className="mt-6 px-6 py-3 bg-[#ff7e5f] text-[#ffedea] rounded-lg hover:bg-[#ff9a76] transition-colors font-semibold shadow-md hover:shadow-lg"
                     >
                       Upload Another File
                     </button>
@@ -351,14 +366,14 @@ export default function UploadPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
+          <div className="bg-[#feb47b] rounded-xl p-6 shadow-lg border-2 border-[#b35340]">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-blue-500" />
+              <AlertCircle className="w-5 h-5 text-[#3d3436]" />
               How It Works
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-[#3d3436] font-bold mb-3">
                   1
                 </div>
                 <h4 className="font-semibold text-foreground mb-2">Upload</h4>
@@ -367,7 +382,7 @@ export default function UploadPage() {
                 </p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 font-bold mb-3">
+                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-[#3d3436] font-bold mb-3">
                   2
                 </div>
                 <h4 className="font-semibold text-foreground mb-2">Sign Transaction</h4>
@@ -376,7 +391,7 @@ export default function UploadPage() {
                 </p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 font-bold mb-3">
+                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-[#3d3436] font-bold mb-3">
                   3
                 </div>
                 <h4 className="font-semibold text-foreground mb-2">Query</h4>

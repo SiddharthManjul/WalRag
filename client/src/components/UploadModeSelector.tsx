@@ -14,7 +14,7 @@ interface UploadModeSelectorProps {
 export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelectorProps) {
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-200">
+      <label className="block text-sm font-medium text-[#3d3436]">
         Privacy Mode
       </label>
 
@@ -27,8 +27,8 @@ export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelec
           className={`
             relative flex items-start p-4 rounded-lg border-2 transition-all
             ${mode === 'public'
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+              ? 'border-[#ff7e5f] bg-[#ff7e5f]/20 shadow-lg'
+              : 'border-[#3d3436]/20 bg-[#ffedea] hover:border-[#3d3436]/40'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
@@ -39,17 +39,17 @@ export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelec
               checked={mode === 'public'}
               onChange={() => onChange('public')}
               disabled={disabled}
-              className="h-4 w-4 text-blue-600 border-gray-600 focus:ring-blue-500"
+              className="h-4 w-4 text-[#ff7e5f] border-[#3d3436] focus:ring-[#ff7e5f]"
             />
           </div>
           <div className="ml-3 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <Unlock className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-medium text-gray-200">
+              <Unlock className={`w-4 h-4 ${mode === 'public' ? 'text-[#ff7e5f]' : 'text-[#3d3436]/60'}`} />
+              <span className={`text-sm font-medium ${mode === 'public' ? 'text-[#3d3436]' : 'text-[#3d3436]/80'}`}>
                 Public Upload
               </span>
             </div>
-            <ul className="text-xs text-gray-400 space-y-1 mt-2">
+            <ul className="text-xs text-[#3d3436]/70 space-y-1 mt-2">
               <li>• Anyone with link can access</li>
               <li>• Stored unencrypted</li>
               <li>• Faster processing</li>
@@ -66,8 +66,8 @@ export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelec
           className={`
             relative flex items-start p-4 rounded-lg border-2 transition-all
             ${mode === 'private'
-              ? 'border-green-500 bg-green-500/10'
-              : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+              ? 'border-[#ff7e5f] bg-[#ff7e5f]/20 shadow-lg'
+              : 'border-[#3d3436]/20 bg-[#ffedea] hover:border-[#3d3436]/40'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
@@ -78,20 +78,20 @@ export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelec
               checked={mode === 'private'}
               onChange={() => onChange('private')}
               disabled={disabled}
-              className="h-4 w-4 text-green-600 border-gray-600 focus:ring-green-500"
+              className="h-4 w-4 text-[#ff7e5f] border-[#3d3436] focus:ring-[#ff7e5f]"
             />
           </div>
           <div className="ml-3 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <Lock className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-medium text-gray-200">
+              <Lock className={`w-4 h-4 ${mode === 'private' ? 'text-[#ff7e5f]' : 'text-[#3d3436]/60'}`} />
+              <span className={`text-sm font-medium ${mode === 'private' ? 'text-[#3d3436]' : 'text-[#3d3436]/80'}`}>
                 Private Upload
               </span>
-              <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
+              <span className="px-2 py-0.5 text-xs bg-[#ff7e5f]/20 text-[#3d3436] rounded-full">
                 Encrypted
               </span>
             </div>
-            <ul className="text-xs text-gray-400 space-y-1 mt-2">
+            <ul className="text-xs text-[#3d3436]/70 space-y-1 mt-2">
               <li>• Only you and approved users</li>
               <li>• End-to-end encrypted (SEAL)</li>
               <li>• Requires wallet approval</li>
@@ -103,10 +103,10 @@ export function UploadModeSelector({ mode, onChange, disabled }: UploadModeSelec
 
       {/* Info Banner for Private Mode */}
       {mode === 'private' && (
-        <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-          <div className="text-xs text-gray-300">
-            <p className="font-medium text-blue-400 mb-1">How Private Upload Works:</p>
+        <div className="flex items-start gap-2 p-3 bg-[#ff7e5f]/10 border border-[#ff7e5f]/30 rounded-lg">
+          <Info className="w-4 h-4 text-[#ff7e5f] mt-0.5 shrink-0" />
+          <div className="text-xs text-[#3d3436]">
+            <p className="font-medium text-[#ff7e5f] mb-1">How Private Upload Works:</p>
             <p>
               Your document will be encrypted using SEAL (Simple Encrypted Application Library)
               before uploading to Walrus. Only you and users you explicitly grant access to will
