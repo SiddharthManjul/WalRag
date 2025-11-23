@@ -15,8 +15,11 @@ import * as path from 'path';
 // Server-side cache (ephemeral, for performance)
 const serverCache = new Map<string, string>();
 
-// File-based cache path
-const CACHE_DIR = path.join(process.cwd(), 'data', 'metadata-cache');
+// File-based cache path (use /tmp on Vercel serverless)
+const isVercel = process.env.VERCEL === '1';
+const CACHE_DIR = isVercel
+  ? path.join('/tmp', 'metadata-cache')
+  : path.join(process.cwd(), 'data', 'metadata-cache');
 const CACHE_FILE = path.join(CACHE_DIR, 'blob-ids.json');
 
 export interface MetadataRegistryEntry {

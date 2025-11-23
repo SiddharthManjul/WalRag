@@ -41,7 +41,7 @@ export const config = {
 
   // Vector Store Configuration
   vectorStore: {
-    path: process.env.VECTOR_DB_PATH || './data/vector-store',
+    path: process.env.VECTOR_DB_PATH || (typeof window === 'undefined' ? '/tmp/vector-store' : './data/vector-store'),
     autoSyncInterval: 5 * 60 * 1000, // 5 minutes
     dimensions: 1536, // text-embedding-3-small dimensions
   },

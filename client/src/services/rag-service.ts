@@ -14,6 +14,9 @@ export class RAGService {
   private llm: ChatOpenAI;
 
   constructor() {
+    if (!config.openai.apiKey) {
+      throw new Error('OPENAI_API_KEY is required but not set in environment variables');
+    }
     this.llm = new ChatOpenAI({
       openAIApiKey: config.openai.apiKey,
       modelName: config.openai.chatModel,

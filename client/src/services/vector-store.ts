@@ -24,6 +24,9 @@ export class VectorStoreService {
   private initialized: boolean = false;
 
   constructor() {
+    if (!config.openai.apiKey) {
+      throw new Error('OPENAI_API_KEY is required but not set in environment variables');
+    }
     this.embeddings = new OpenAIEmbeddings({
       openAIApiKey: config.openai.apiKey,
       modelName: config.openai.embeddingModel,

@@ -18,13 +18,6 @@ export async function GET(request: NextRequest) {
     // Get user-specific chat service
     const chatService = await getUserChatService(user.userAddr);
 
-    if (!chatService) {
-      return NextResponse.json(
-        { error: "Failed to initialize chat service" },
-        { status: 500 }
-      );
-    }
-
     // If no registry, user needs to create one
     if (!chatService) {
       return NextResponse.json({
