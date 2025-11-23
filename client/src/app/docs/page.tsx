@@ -77,9 +77,9 @@ export default function DocsPage() {
           </p>
         </motion.div>
 
-        <div className="flex gap-12">
+        <div className="flex gap-24">
           {/* Left sidebar - Section navigation (35%) */}
-          <div className="w-[35%] shrink-0">
+          <div className="w-[35%] mt-28 shrink-0">
             <div className="sticky top-24">
               <nav className="space-y-2">
                 {sections.map((section) => {
